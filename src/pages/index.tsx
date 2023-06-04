@@ -119,15 +119,7 @@ export default function Home() {
   };
   const generate = async () => {
     try {
-      const response = await fetch("/api/sign", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pno: pnoRef.current?.value,
-        }),
-      });
+      const response = await fetch("/api/sign");
       if (response.status !== 200) return;
       const qrCode = await response.text();
       setStartToken(qrCode.split(".")[1]);
@@ -142,7 +134,15 @@ export default function Home() {
   };
   const initiate = async () => {
     try {
-      const response = await fetch("/api/sign");
+      const response = await fetch("/api/sign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pno: pnoRef.current?.value,
+        }),
+      });
       if (response.status === 200) {
         interval.current = setInterval(
           () => Promise.all([collect(), generate()]),
