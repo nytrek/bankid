@@ -16,11 +16,11 @@ const environments = {
 };
 
 export default function Home() {
-  const [pno, setPno] = useState("");
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const { data: signs, isLoading } = useSigns();
   const [userSign, setUserSign] = useState(false);
+  const pnoRef = useRef<HTMLInputElement | null>(null);
   const interval = useRef<NodeJS.Timeout | null>(null);
   const [data, setData] = useState<string | null>(null);
   const [startToken, setStartToken] = useState<string | null>();
@@ -125,7 +125,7 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          pno,
+          personalNumber: pnoRef.current?.value,
         }),
       });
       if (response.status !== 200) return;
@@ -303,10 +303,9 @@ export default function Home() {
                 </div>
                 <div className="mt-2">
                   <input
+                    ref={pnoRef}
                     id="pno"
                     type="text"
-                    value={pno}
-                    onChange={(e) => setPno(e.target.value)}
                     className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
                   />
                 </div>
