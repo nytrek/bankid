@@ -1,118 +1,287 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
+import useSigns, { Sign } from "@/hooks/useSigns";
+import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/20/solid";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CollectResponse } from "bankid";
+import clsx from "clsx";
+import { deleteCookie, getCookie } from "cookies-next";
+import { formatDistanceToNow } from "date-fns";
+import QRCode from "qrcode";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 
-const inter = Inter({ subsets: ['latin'] })
+const environments = {
+  failed: "text-gray-400 bg-gray-400/10 ring-gray-400/20",
+  complete: "text-indigo-400 bg-indigo-400/10 ring-indigo-400/30",
+};
 
 export default function Home() {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const { data: signs, isLoading } = useSigns();
+  const [userSign, setUserSign] = useState(false);
+  const interval = useRef<NodeJS.Timeout | null>(null);
+  const [data, setData] = useState<string | null>(null);
+  const reset = () => {
+    setData(null);
+    setUserSign(false);
+    deleteCookie("sign");
+    clearInterval(interval.current as NodeJS.Timeout);
+  };
+  const createSign = useMutation(
+    async (sign: Sign) => {
+      const { hintCode, ...payload } = sign;
+      const response = await toast.promise(
+        fetch(process.env.NEXT_PUBLIC_URL + "/signs/create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...payload,
+            hintCode: hintCode ? hintCode : "success",
+          }),
+        }),
+        {
+          loading: "Loading...",
+          success: "Sign Created!",
+          error: "Error!",
+        }
+      );
+      const { data, error } = await response.json();
+      if (error) throw new Error(error);
+      return data;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["signs"]);
+      },
+      onError: (err: any) => {
+        console.log(err.message);
+      },
+    }
+  );
+  const deleteSign = useMutation(
+    async (id: number) => {
+      const response = await toast.promise(
+        fetch(process.env.NEXT_PUBLIC_URL + "/signs/delete/" + id, {
+          method: "DELETE",
+        }),
+        {
+          loading: "Loading...",
+          success: "Sign Deleted!",
+          error: "Error!",
+        }
+      );
+      const { data, error } = await response.json();
+      if (error) throw new Error(error);
+      return data;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["signs"]);
+      },
+      onError: (err: any) => {
+        console.log(err.message);
+      },
+    }
+  );
+  const collect = async () => {
+    try {
+      const response = await fetch("/api/collect");
+      if (response.status !== 200) {
+        return reset();
+      }
+      const collect = (await response.json()) as CollectResponse;
+      if (collect.hintCode === "userSign") setUserSign(true);
+      else setUserSign(false);
+      if (collect.status === "failed") {
+        createSign.mutate({
+          orderRef: collect.orderRef,
+          status: collect.status,
+          hintCode: collect.hintCode as string,
+        } as Sign);
+        return reset();
+      } else if (collect.status === "complete") {
+        createSign.mutate({
+          orderRef: collect.orderRef,
+          status: collect.status,
+          hintCode: collect.hintCode as string,
+        } as Sign);
+        return reset();
+      }
+    } catch (err: any) {
+      console.log(err.message);
+    }
+  };
+  const generate = async () => {
+    try {
+      const response = await fetch("/api/sign");
+      if (response.status !== 200) return;
+      const qrCode = await response.text();
+      setData(
+        await QRCode.toDataURL(qrCode, {
+          errorCorrectionLevel: "L",
+        })
+      );
+    } catch (err: any) {
+      console.log(err.message);
+    }
+  };
+  const initiate = async () => {
+    try {
+      const response = await fetch("/api/sign");
+      if (response.status === 200) {
+        interval.current = setInterval(
+          () => Promise.all([collect(), generate()]),
+          1000
+        );
+      }
+    } catch (err: any) {
+      console.log(err.message);
+    }
+  };
+  useEffect(() => {
+    if (getCookie("sign")) deleteCookie("sign");
+  }, []);
+  if (isLoading) return <>Loading...</>;
   return (
-    <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    >
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/pages/index.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div>
+      {/* Sticky search header */}
+      <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-6 border-b border-white/5 bg-gray-900 px-4 shadow-sm sm:px-6 lg:px-8">
+        <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
+          <form className="flex flex-1" action="#" method="GET">
+            <label htmlFor="search-field" className="sr-only">
+              Search
+            </label>
+            <div className="relative w-full">
+              <MagnifyingGlassIcon
+                className="pointer-events-none absolute inset-y-0 left-0 h-full w-5 text-gray-500"
+                aria-hidden="true"
+              />
+              <input
+                id="search-field"
+                className="block h-full w-full border-0 bg-transparent py-0 pl-8 pr-0 text-white focus:ring-0 sm:text-sm"
+                placeholder="Search..."
+                type="search"
+                name="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </form>
         </div>
       </div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+      <div className="flex flex-col-reverse lg:block">
+        <main className="lg:pr-96">
+          <header className="flex items-center justify-between border-b border-white/5 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+            <h1 className="text-base font-semibold leading-7 text-white">
+              Deployments
+            </h1>
+
+            <p className="text-sm font-medium leading-6 text-white">
+              {signs?.length} Signature/s captured
+            </p>
+          </header>
+
+          {/* Deployment list */}
+          <ul role="list" className="divide-y divide-white/5">
+            {signs
+              ?.filter(
+                (sign) =>
+                  sign.orderRef.includes(search) ||
+                  sign.status.includes(search) ||
+                  sign.hintCode.includes(search)
+              )
+              .map((sign) => (
+                <li
+                  key={sign.id}
+                  className="relative flex items-center space-x-4 px-4 py-4 sm:px-6 lg:px-8"
+                >
+                  <div className="min-w-0 flex-auto">
+                    <div className="flex items-center gap-x-3">
+                      <h2 className="min-w-0 text-sm font-semibold leading-6 text-white">
+                        {sign.orderRef}
+                      </h2>
+                    </div>
+                    <div className="mt-3 flex items-center gap-x-2.5 text-xs leading-5 text-gray-400">
+                      <p className="truncate">
+                        {formatDistanceToNow(new Date(sign.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </p>
+                      <svg
+                        viewBox="0 0 2 2"
+                        className="h-0.5 w-0.5 flex-none fill-gray-300"
+                      >
+                        <circle cx={1} cy={1} r={1} />
+                      </svg>
+                      <p className="whitespace-nowrap">{sign.hintCode}</p>
+                    </div>
+                  </div>
+                  <div
+                    className={clsx(
+                      environments[sign.status as keyof typeof environments],
+                      "flex-none rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset"
+                    )}
+                  >
+                    {sign.status}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => deleteSign.mutate(sign.id)}
+                  >
+                    <XMarkIcon
+                      className="h-5 w-5 flex-none text-gray-400"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </main>
+
+        {/* Activity feed */}
+        <aside className="bg-black/10 lg:fixed lg:bottom-0 lg:right-0 lg:top-16 lg:w-96 lg:overflow-y-auto lg:border-l lg:border-white/5">
+          <header className="flex items-center justify-between border-b border-white/5 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+            <h2 className="text-base font-semibold leading-7 text-white">
+              QR Code
+            </h2>
+            {data ? (
+              <button
+                type="button"
+                onClick={reset}
+                className="text-sm font-semibold leading-6 text-indigo-400"
+              >
+                Reset
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={initiate}
+                className="text-sm font-semibold leading-6 text-indigo-400"
+              >
+                Start
+              </button>
+            )}
+          </header>
+          {!!data && (
+            <img
+              src={data}
+              className={clsx(
+                userSign ? "mb-6 mt-12" : "my-12",
+                "mx-auto rounded-md"
+              )}
+              alt="qrcode"
+            />
+          )}
+          {userSign && (
+            <p className="mb-12 px-4 py-4 text-center font-mono text-sm text-white sm:px-6 sm:py-6 lg:px-8">
+              Complete the signature process using Bank ID on your device
+            </p>
+          )}
+        </aside>
       </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+    </div>
+  );
 }
