@@ -142,7 +142,29 @@ export default function Home() {
         }),
       });
       if (response.status === 200) {
-        if (pnoRef.current?.value) {
+        interval.current = setInterval(
+          () => Promise.all([collect(), generate()]),
+          1000
+        );
+      }
+    } catch (err: any) {
+      console.log(err.message);
+    }
+  };
+  const handleOnSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pnoRef.current?.value) {
+      try {
+        const response = await fetch("/api/sign", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pno: pnoRef.current?.value,
+          }),
+        });
+        if (response.status === 200) {
           const autoStartToken = (await response.json()).autoStartToken;
           router.push(
             "https://app.bankid.com/?autostarttoken=" +
@@ -150,20 +172,11 @@ export default function Home() {
               "&redirect=null"
           );
           interval.current = setInterval(() => collect(), 1000);
-        } else {
-          interval.current = setInterval(
-            () => Promise.all([collect(), generate()]),
-            1000
-          );
         }
+      } catch (err: any) {
+        console.log(err.message);
       }
-    } catch (err: any) {
-      console.log(err.message);
     }
-  };
-  const handleOnSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (pnoRef.current?.value) initiate();
   };
   useEffect(() => {
     if (getCookie("sign")) deleteCookie("sign");
