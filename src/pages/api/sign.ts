@@ -18,6 +18,7 @@ export default async function handler(
   res: NextApiResponse<string>
 ) {
   try {
+    const { pno } = req.body;
     if (getCookie("sign", { req, res })) {
       const qr = JSON.parse(getCookie("sign", { req, res }) as string);
       const qrTime = parseInt(`${(Date.now() - qr.startTime) / 1000}`, 10);
@@ -34,6 +35,7 @@ export default async function handler(
       //   passphrase: process.env.PASSPHRASE,
       // }
       const sign = (await client.sign({
+        personalNumber: pno,
         userVisibleData: "Signature at bankid.nytrek.dev",
         endUserIp: requestIp.getClientIp(req) as string,
       })) as AuthResponse & { startTime: number };

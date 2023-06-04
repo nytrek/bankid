@@ -16,6 +16,7 @@ const environments = {
 };
 
 export default function Home() {
+  const [pno, setPno] = useState("");
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const { data: signs, isLoading } = useSigns();
@@ -26,6 +27,7 @@ export default function Home() {
   const reset = () => {
     setData(null);
     setUserSign(false);
+    setStartToken(null);
     deleteCookie("sign");
     clearInterval(interval.current as NodeJS.Timeout);
   };
@@ -117,7 +119,15 @@ export default function Home() {
   };
   const generate = async () => {
     try {
-      const response = await fetch("/api/sign");
+      const response = await fetch("/api/sign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pno,
+        }),
+      });
       if (response.status !== 200) return;
       const qrCode = await response.text();
       setStartToken(qrCode.split(".")[1]);
@@ -281,18 +291,39 @@ export default function Home() {
             </p>
           )}
           {!!startToken && (
-            <div className="mb-12 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-              <Link
-                href={
-                  "https://app.bankid.com/?autostarttoken=" +
-                  startToken +
-                  "&redirect=https://bankid.nytrek.dev/"
-                }
-                className="flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-              >
-                Open on this device
-              </Link>
-            </div>
+            <>
+              <div className="px-4 py-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="pno"
+                    className="block text-sm font-medium leading-6 text-white"
+                  >
+                    Personal number
+                  </label>
+                </div>
+                <div className="mt-2">
+                  <input
+                    id="pno"
+                    type="text"
+                    value={pno}
+                    onChange={(e) => setPno(e.target.value)}
+                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  />
+                </div>
+              </div>
+              <div className="mb-12 px-4 sm:px-6 lg:px-8">
+                <Link
+                  href={
+                    "https://app.bankid.com/?autostarttoken=" +
+                    startToken +
+                    "&redirect=https://bankid.nytrek.dev/"
+                  }
+                  className="flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                >
+                  Open on this device
+                </Link>
+              </div>
+            </>
           )}
         </aside>
       </div>
