@@ -5,10 +5,9 @@ import { CollectResponse } from "bankid";
 import clsx from "clsx";
 import { deleteCookie, getCookie } from "cookies-next";
 import { formatDistanceToNow } from "date-fns";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import QRCode from "qrcode";
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 const environments = {
@@ -148,18 +147,23 @@ export default function Home() {
           router.push(
             "https://app.bankid.com/?autostarttoken=" +
               autoStartToken +
-              "&redirect=https://bankid.nytrek.dev/"
+              "&redirect=null"
           );
           interval.current = setInterval(() => collect(), 1000);
+        } else {
+          interval.current = setInterval(
+            () => Promise.all([collect(), generate()]),
+            1000
+          );
         }
-        interval.current = setInterval(
-          () => Promise.all([collect(), generate()]),
-          1000
-        );
       }
     } catch (err: any) {
       console.log(err.message);
     }
+  };
+  const handleOnSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pnoRef.current?.value) initiate();
   };
   useEffect(() => {
     if (getCookie("sign")) deleteCookie("sign");
@@ -299,7 +303,7 @@ export default function Home() {
             </p>
           )}
           {!data && (
-            <>
+            <form onSubmit={handleOnSubmit}>
               <div className="px-4 py-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between">
                   <label
@@ -315,19 +319,19 @@ export default function Home() {
                     id="pno"
                     type="text"
                     className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                    required
                   />
                 </div>
               </div>
               <div className="mb-12 px-4 sm:px-6 lg:px-8">
                 <button
-                  type="button"
-                  onClick={initiate}
+                  type="submit"
                   className="flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                 >
                   Open on this device
                 </button>
               </div>
-            </>
+            </form>
           )}
         </aside>
       </div>
