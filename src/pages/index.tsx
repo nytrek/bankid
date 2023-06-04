@@ -125,7 +125,7 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          personalNumber: pnoRef.current?.value,
+          pno: pnoRef.current?.value,
         }),
       });
       if (response.status !== 200) return;
