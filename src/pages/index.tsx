@@ -5,6 +5,7 @@ import { CollectResponse } from "bankid";
 import clsx from "clsx";
 import { deleteCookie, getCookie } from "cookies-next";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -21,6 +22,7 @@ export default function Home() {
   const [userSign, setUserSign] = useState(false);
   const interval = useRef<NodeJS.Timeout | null>(null);
   const [data, setData] = useState<string | null>(null);
+  const [startToken, setStartToken] = useState<string | null>();
   const reset = () => {
     setData(null);
     setUserSign(false);
@@ -118,6 +120,7 @@ export default function Home() {
       const response = await fetch("/api/sign");
       if (response.status !== 200) return;
       const qrCode = await response.text();
+      setStartToken(qrCode.split(".")[1]);
       setData(
         await QRCode.toDataURL(qrCode, {
           errorCorrectionLevel: "L",
@@ -268,17 +271,28 @@ export default function Home() {
           {!!data && (
             <img
               src={data}
-              className={clsx(
-                userSign ? "mb-6 mt-12" : "my-12",
-                "mx-auto rounded-md"
-              )}
+              className="mx-auto mb-6 mt-12 rounded-md"
               alt="qrcode"
             />
           )}
           {userSign && (
-            <p className="mb-12 px-4 py-4 text-center font-mono text-sm text-white sm:px-6 sm:py-6 lg:px-8">
+            <p className="px-4 py-4 text-center font-mono text-sm text-white sm:px-6 sm:py-6 lg:px-8">
               Complete the signature process using Bank ID on your device
             </p>
+          )}
+          {!!startToken && (
+            <div className="mb-12 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+              <Link
+                href={
+                  "https://app.bankid.com/?autostarttoken=" +
+                  startToken +
+                  "&redirect=https://bankid.nytrek.dev/"
+                }
+                className="flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+              >
+                Open on this device
+              </Link>
+            </div>
           )}
         </aside>
       </div>

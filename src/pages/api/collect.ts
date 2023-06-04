@@ -15,9 +15,9 @@ export default async function handler(
       const collect = await client.collect({
         orderRef: qr.orderRef,
       });
-      return res.status(200).json(collect);
-    } else return res.status(200);
+      res.status(200).json(collect);
+    } else res.status(200);
   } catch (err: any) {
-    return res.status(500).send(err.message);
+    res.status(500).send(err.message);
   }
 }
