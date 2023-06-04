@@ -1,6 +1,7 @@
 import { AuthResponse, BankIdClient } from "bankid";
 import { deleteCookie, getCookie, setCookie } from "cookies-next";
 import crypto from "crypto";
+import luhn from "luhn";
 import type { NextApiRequest, NextApiResponse } from "next";
 import requestIp from "request-ip";
 
@@ -15,7 +16,7 @@ function generateQr(qrStartSecret: string, qrStartToken: string, time: number) {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<string>
+  res: NextApiResponse<AuthResponse | string>
 ) {
   try {
     const { pno } = req.body;
@@ -35,7 +36,7 @@ export default async function handler(
       //   passphrase: process.env.PASSPHRASE,
       // }
       const sign = (await client.sign({
-        personalNumber: pno,
+        personalNumber: luhn.validate(pno) ? pno : undefined,
         userVisibleData: "Signature at bankid.nytrek.dev",
         endUserIp: requestIp.getClientIp(req) as string,
       })) as AuthResponse & { startTime: number };
@@ -45,7 +46,7 @@ export default async function handler(
         res,
         maxAge: 60 * 6 * 24,
       });
-      return res.status(200).send("success");
+      return res.status(200).json(sign);
     }
   } catch (err: any) {
     deleteCookie("sign");

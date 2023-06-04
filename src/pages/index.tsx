@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { deleteCookie, getCookie } from "cookies-next";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -16,6 +17,7 @@ const environments = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const { data: signs, isLoading } = useSigns();
@@ -23,11 +25,9 @@ export default function Home() {
   const pnoRef = useRef<HTMLInputElement | null>(null);
   const interval = useRef<NodeJS.Timeout | null>(null);
   const [data, setData] = useState<string | null>(null);
-  const [startToken, setStartToken] = useState<string | null>();
   const reset = () => {
     setData(null);
     setUserSign(false);
-    setStartToken(null);
     deleteCookie("sign");
     clearInterval(interval.current as NodeJS.Timeout);
   };
@@ -122,7 +122,6 @@ export default function Home() {
       const response = await fetch("/api/sign");
       if (response.status !== 200) return;
       const qrCode = await response.text();
-      setStartToken(qrCode.split(".")[1]);
       setData(
         await QRCode.toDataURL(qrCode, {
           errorCorrectionLevel: "L",
@@ -144,6 +143,14 @@ export default function Home() {
         }),
       });
       if (response.status === 200) {
+        if (pnoRef.current?.value) {
+          const autoStartToken = (await response.json()).autoStartToken;
+          router.push(
+            "https://app.bankid.com/?autostarttoken=" +
+              autoStartToken +
+              "&redirect=https://bankid.nytrek.dev/"
+          );
+        }
         interval.current = setInterval(
           () => Promise.all([collect(), generate()]),
           1000
@@ -290,7 +297,7 @@ export default function Home() {
               Complete the signature process using Bank ID on your device
             </p>
           )}
-          {!!startToken && (
+          {!data && (
             <>
               <div className="px-4 py-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between">
@@ -311,16 +318,13 @@ export default function Home() {
                 </div>
               </div>
               <div className="mb-12 px-4 sm:px-6 lg:px-8">
-                <Link
-                  href={
-                    "https://app.bankid.com/?autostarttoken=" +
-                    startToken +
-                    "&redirect=https://bankid.nytrek.dev/"
-                  }
+                <button
+                  type="button"
+                  onClick={initiate}
                   className="flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                 >
                   Open on this device
-                </Link>
+                </button>
               </div>
             </>
           )}
