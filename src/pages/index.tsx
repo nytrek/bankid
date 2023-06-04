@@ -150,6 +150,7 @@ export default function Home() {
               autoStartToken +
               "&redirect=https://bankid.nytrek.dev/"
           );
+          interval.current = setInterval(() => collect(), 1000);
         }
         interval.current = setInterval(
           () => Promise.all([collect(), generate()]),
