@@ -41,6 +41,6 @@
     "@types/qrcode": "^1.5.0",
     "@types/request-ip": "^0.0.37",
     "prettier": "^2.8.8",
-    "prettier-plugin-tailwindcss": "^0.3.0"
+    "prettier-plugin-tailwindcss": "^0.4.0"
   }
 }
