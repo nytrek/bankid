@@ -1,5 +1,9 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
 dependencies:
   '@headlessui/react':
     specifier: ^1.7.15
@@ -11,8 +15,8 @@ dependencies:
     specifier: ^4.29.12
     version: 4.29.12(react-dom@18.2.0)(react@18.2.0)
   '@types/node':
-    specifier: 20.2.5
-    version: 20.2.5
+    specifier: 20.4.1
+    version: 20.4.1
   '@types/react':
     specifier: 18.2.7
     version: 18.2.7
@@ -24,7 +28,7 @@ dependencies:
     version: 10.4.14(postcss@8.4.24)
   bankid:
     specifier: ^3.1.1
-    version: 3.1.1(@types/node@20.2.5)
+    version: 3.1.1(@types/node@20.4.1)
   clsx:
     specifier: ^1.2.1
     version: 1.2.1
@@ -397,8 +401,8 @@ packages:
     resolution: {integrity: sha512-VmVm7gXwhkUimRfBwVI1CHhwp86jDWR04B5FGebMMyxV90SlCmFujwUHrxTD4oO+SOYU86SoxvhgeRQJY7iXFg==}
     dev: false
 
-  /@types/node@20.2.5:
-    resolution: {integrity: sha512-JJulVEQXmiY9Px5axXHeYGLSjhkZEnD+MDPDGbCbIAbMslkKwmygtZFy1X6s/075Yo94sf8GuSlFfPzysQrWZQ==}
+  /@types/node@20.4.1:
+    resolution: {integrity: sha512-JIzsAvJeA/5iY6Y/OxZbv1lUcc8dNSE77lb2gnBH+/PJ3lFR1Ccvgwl5JWnHAkNHcRsT0TbpVOsiMKZ1F/yyJg==}
 
   /@types/prop-types@15.7.5:
     resolution: {integrity: sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==}
@@ -407,7 +411,7 @@ packages:
   /@types/qrcode@1.5.0:
     resolution: {integrity: sha512-x5ilHXRxUPIMfjtM+1vf/GPTRWZ81nqscursm5gMznJeK9M0YnZ1c3bEvRLQ0zSSgedLx1J6MGL231ObQGGhaA==}
     dependencies:
-      '@types/node': 20.2.5
+      '@types/node': 20.4.1
     dev: true
 
   /@types/react-dom@18.2.4:
@@ -427,7 +431,7 @@ packages:
   /@types/request-ip@0.0.37:
     resolution: {integrity: sha512-uw6/i3rQnpznxD7LtLaeuZytLhKZK6bRoTS6XVJlwxIOoOpEBU7bgKoVXDNtOg4Xl6riUKHa9bjMVrL6ESqYlQ==}
     dependencies:
-      '@types/node': 20.2.5
+      '@types/node': 20.4.1
     dev: true
 
   /@types/scheduler@0.16.3:
@@ -654,7 +658,7 @@ packages:
   /balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
-  /bankid@3.1.1(@types/node@20.2.5):
+  /bankid@3.1.1(@types/node@20.4.1):
     resolution: {integrity: sha512-Q9NzWst1N4bM4SDK0cXrONaml+B08QN+8o1j7Xj/+sbXd76/QKqO4N8z86D6Qz3o8SPitiGIfMfK/nETcEhG3A==}
     engines: {node: '>=10.13.0'}
     peerDependencies:
@@ -663,7 +667,7 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@types/node': 20.2.5
+      '@types/node': 20.4.1
       axios: 0.26.1
     transitivePeerDependencies:
       - debug
